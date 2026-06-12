@@ -1,1 +1,356 @@
+import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ShieldCheck, Upload, Mail, FileText, Building2, CheckCircle2, AlertTriangle } from 'lucide-react';
+
+const MAILBOX = 'onboarding@yourcompany.com';
+const POWER_AUTOMATE_ENDPOINT = 'https://defaulta54d8427900a45edb5cb27f333f1b4.33.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/510c67dcf0db47f9b8c5f97605781042/triggers/manual/paths/invoke?api-version=1';
+
+const DOCS_BY_TYPE = {
+  limited_company: [
+    { key: 'certificateOfIncorporation', label: 'Certificate of Incorporation', required: true, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    { key: 'rightToWork', label: 'Right to Work evidence (passport or share-code evidence)', required: true, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    { key: 'proofOfAddress', label: 'Proof of address', required: true, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    { key: 'bankDetails', label: 'Proof of bank details', required: true, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    { key: 'vatRegistration', label: 'Proof of VAT registration (if applicable)', required: false, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    { key: 'insurance', label: 'Company insurance (PI/PL or Employers Liability)', required: true, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+  ],
+  umbrella: [
+    { key: 'rightToWork', label: 'Right to Work evidence', required: true, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+    { key: 'proofOfAddress', label: 'Proof of address (unless collected by umbrella company)', required: false, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+  ],
+  margin_only: [
+    { key: 'rightToWork', label: 'Right to Work evidence', required: true, accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+  ],
+};
+
+const TYPE_LABELS = {
+  limited_company: 'Limited company contractor (outside IR35)',
+  umbrella: 'Umbrella company contractor',
+  margin_only: 'Margin only contractor',
+};
+
+function RequiredBadge({ required }) {
+  return required ? <Badge className="bg-red-600 hover:bg-red-600">Required</Badge> : <Badge variant="secondary">Optional</Badge>;
+}
+
+export default function ContractorOnboardingWebForm() {
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    contractorType: 'limited_company',
+    limitedCompanyName: '',
+    workLocation: '',
+    startDate: '',
+    hasVatRegistration: false,
+    notes: '',
+    confirmAccuracy: false,
+    consent: false,
+  });
+  const [files, setFiles] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [errors, setErrors] = useState([]);
+
+  const requiredDocs = useMemo(() => {
+    const docs = DOCS_BY_TYPE[form.contractorType] || [];
+    return docs.filter((d) => d.required || (d.key === 'vatRegistration' && form.hasVatRegistration));
+  }, [form.contractorType, form.hasVatRegistration]);
+
+  const allDocs = useMemo(() => {
+    const docs = DOCS_BY_TYPE[form.contractorType] || [];
+    return docs.filter((d) => d.key !== 'vatRegistration' || form.hasVatRegistration);
+  }, [form.contractorType, form.hasVatRegistration]);
+
+  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleFileChange = (key, fileList) => {
+    const file = fileList?.[0] || null;
+    setFiles((prev) => ({ ...prev, [key]: file }));
+  };
+
+  const validate = () => {
+    const nextErrors = [];
+    ['firstName', 'lastName', 'email', 'phone', 'workLocation', 'startDate'].forEach((field) => {
+      if (!form[field]) nextErrors.push(`${field} is required`);
+    });
+    if (form.contractorType === 'limited_company' && !form.limitedCompanyName) {
+      nextErrors.push('limited company name is required');
+    }
+    requiredDocs.forEach((doc) => {
+      if (!files[doc.key]) nextErrors.push(`${doc.label} is required`);
+    });
+    if (!form.confirmAccuracy) nextErrors.push('confirmation of accuracy is required');
+    if (!form.consent) nextErrors.push('data processing consent is required');
+    setErrors(nextErrors);
+    return nextErrors.length === 0;
+  };
+
+  const buildFormData = () => {
+    const data = new FormData();
+    Object.entries(form).forEach(([key, value]) => data.append(key, String(value)));
+    data.append('mailbox', MAILBOX);
+    data.append('contractorTypeLabel', TYPE_LABELS[form.contractorType]);
+    allDocs.forEach((doc) => {
+      if (files[doc.key]) data.append(doc.key, files[doc.key], files[doc.key].name);
+    });
+    return data;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setResult(null);
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      const payloadSummary = {
+        mailbox: MAILBOX,
+        contractor: `${form.firstName} ${form.lastName}`,
+        contractorType: TYPE_LABELS[form.contractorType],
+        email: form.email,
+        phone: form.phone,
+        limitedCompanyName: form.limitedCompanyName || null,
+        workLocation: form.workLocation,
+        startDate: form.startDate,
+        attachments: allDocs.filter((doc) => files[doc.key]).map((doc) => ({
+          field: doc.label,
+          fileName: files[doc.key]?.name,
+          sizeBytes: files[doc.key]?.size,
+          type: files[doc.key]?.type,
+        })),
+        notes: form.notes,
+      };
+
+      if (POWER_AUTOMATE_ENDPOINT) {
+        const response = await fetch(POWER_AUTOMATE_ENDPOINT, {
+          method: 'POST',
+          body: buildFormData(),
+        });
+        if (!response.ok) throw new Error(`Submission failed (${response.status})`);
+        setResult({ mode: 'live', summary: payloadSummary });
+      } else {
+        setResult({ mode: 'preview', summary: payloadSummary });
+      }
+    } catch (error) {
+      setResult({ mode: 'error', message: error.message || 'Something went wrong.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="rounded-2xl shadow-sm border-slate-200">
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="text-3xl flex items-center gap-3">
+                    <ShieldCheck className="h-8 w-8 text-emerald-600" />
+                    Contractor Onboarding Submission
+                  </CardTitle>
+                  <CardDescription className="mt-2 text-base">
+                    Complete this form and upload the required documents before submitting. Once connected to your automation endpoint, the submission can be emailed to <span className="font-medium text-slate-900">{MAILBOX}</span> together with all uploaded files.
+                  </CardDescription>
+                </div>
+                <div className="hidden md:flex items-center gap-2 rounded-2xl border bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+                  <Mail className="h-4 w-4" />
+                  Delivery mailbox: <span className="font-semibold text-slate-900">{MAILBOX}</span>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </motion.div>
+
+        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1.5fr,0.8fr]">
+          <div className="space-y-6">
+            <Card className="rounded-2xl shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl">Contractor details</CardTitle>
+                <CardDescription>Core information captured in the onboarding submission.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First name</Label>
+                  <Input id="firstName" value={form.firstName} onChange={(e) => update('firstName', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last name</Label>
+                  <Input id="lastName" value={form.lastName} onChange={(e) => update('lastName', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email address</Label>
+                  <Input id="email" type="email" value={form.email} onChange={(e) => update('email', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone number</Label>
+                  <Input id="phone" value={form.phone} onChange={(e) => update('phone', e.target.value)} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Contractor type</Label>
+                  <Select value={form.contractorType} onValueChange={(value) => update('contractorType', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="limited_company">Limited company contractor (outside IR35)</SelectItem>
+                      <SelectItem value="umbrella">Umbrella company contractor</SelectItem>
+                      <SelectItem value="margin_only">Margin only contractor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.contractorType === 'limited_company' && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="limitedCompanyName">Limited company name</Label>
+                    <Input id="limitedCompanyName" value={form.limitedCompanyName} onChange={(e) => update('limitedCompanyName', e.target.value)} />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="workLocation">Work location</Label>
+                  <Input id="workLocation" placeholder="e.g. London, UK / Hybrid" value={form.workLocation} onChange={(e) => update('workLocation', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Assignment start date</Label>
+                  <Input id="startDate" type="date" value={form.startDate} onChange={(e) => update('startDate', e.target.value)} />
+                </div>
+                {form.contractorType === 'limited_company' && (
+                  <div className="flex items-center gap-3 md:col-span-2 rounded-xl border bg-slate-50 p-3">
+                    <Checkbox id="hasVatRegistration" checked={form.hasVatRegistration} onCheckedChange={(checked) => update('hasVatRegistration', Boolean(checked))} />
+                    <Label htmlFor="hasVatRegistration" className="leading-6">This company is VAT registered and will upload VAT evidence.</Label>
+                  </div>
+                )}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea id="notes" value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Any additional notes for compliance or finance review." className="min-h-[120px]" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl flex items-center gap-2"><Upload className="h-5 w-5" /> Required documentation</CardTitle>
+                <CardDescription>Upload the documents needed for the selected contractor type.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {allDocs.map((doc) => (
+                  <div key={doc.key} className="rounded-2xl border p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-slate-900">{doc.label}</div>
+                        <div className="text-sm text-slate-500">Accepted: PDF, Word, JPG, PNG</div>
+                      </div>
+                      <RequiredBadge required={doc.required || (doc.key === 'vatRegistration' && form.hasVatRegistration)} />
+                    </div>
+                    <Input type="file" accept={doc.accept} onChange={(e) => handleFileChange(doc.key, e.target.files)} />
+                    {files[doc.key] && (
+                      <p className="mt-2 text-sm text-emerald-700">Selected: {files[doc.key].name}</p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl">Declarations</CardTitle>
+                <CardDescription>Simple confirmations before submission.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3 rounded-xl border p-3">
+                  <Checkbox id="confirmAccuracy" checked={form.confirmAccuracy} onCheckedChange={(checked) => update('confirmAccuracy', Boolean(checked))} />
+                  <Label htmlFor="confirmAccuracy" className="leading-6">I confirm that the information and uploaded documents are accurate and complete.</Label>
+                </div>
+                <div className="flex items-start gap-3 rounded-xl border p-3">
+                  <Checkbox id="consent" checked={form.consent} onCheckedChange={(checked) => update('consent', Boolean(checked))} />
+                  <Label htmlFor="consent" className="leading-6">I consent to the information in this form being used for onboarding, compliance, payroll, finance, and audit purposes.</Label>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="rounded-2xl shadow-sm sticky top-6">
+              <CardHeader>
+                <CardTitle className="text-xl flex items-center gap-2"><Building2 className="h-5 w-5" /> Submission routing</CardTitle>
+                <CardDescription>How this prototype is configured.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-xl bg-slate-50 p-4 text-sm">
+                  <div className="font-medium text-slate-900">Mailbox</div>
+                  <div className="mt-1 text-slate-600">{MAILBOX}</div>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4 text-sm">
+                  <div className="font-medium text-slate-900">Automation endpoint</div>
+                  <div className="mt-1 break-all text-slate-600">{POWER_AUTOMATE_ENDPOINT || 'Not configured — preview mode only'}</div>
+                </div>
+                <Separator />
+                <div className="space-y-2 text-sm text-slate-600">
+                  <p className="font-medium text-slate-900">Recommended implementation</p>
+                  <p>1. Host this form on an internal/external site.</p>
+                  <p>2. Connect submit to a Power Automate HTTP endpoint or Azure Function.</p>
+                  <p>3. Use the flow/function to email the form details and each uploaded file to the mailbox.</p>
+                </div>
+                <Button type="submit" className="w-full rounded-2xl" disabled={submitting}>
+                  {submitting ? 'Submitting...' : 'Submit onboarding pack'}
+                </Button>
+                {errors.length > 0 && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    <div className="mb-2 flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" /> Please fix the following</div>
+                    <ul className="list-disc pl-5">
+                      {errors.map((err) => <li key={err}>{err}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {result?.mode === 'preview' && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                    <div className="mb-2 flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Preview ready</div>
+                    <p>This prototype collected the form data successfully. Because no endpoint is configured, it is showing a preview instead of sending.</p>
+                  </div>
+                )}
+                {result?.mode === 'live' && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                    <div className="mb-2 flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> Submission sent</div>
+                    <p>The form was submitted to the configured endpoint for delivery to the mailbox.</p>
+                  </div>
+                )}
+                {result?.mode === 'error' && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    <div className="mb-2 flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" /> Submission failed</div>
+                    <p>{result.message}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {result?.summary && (
+              <Card className="rounded-2xl shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2"><FileText className="h-5 w-5" /> Submission preview</CardTitle>
+                  <CardDescription>This is the payload summary that can be emailed to the mailbox.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <pre className="overflow-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-100">
+{JSON.stringify(result.summary, null, 2)}
+                  </pre>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
