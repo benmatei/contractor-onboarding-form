@@ -11,8 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ShieldCheck, Upload, Mail, FileText, Building2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
-const MAILBOX = 'onboarding@yourcompany.com';
-const POWER_AUTOMATE_ENDPOINT = 'https://defaulta54d8427900a45edb5cb27f333f1b4.33.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/510c67dcf0db47f9b8c5f97605781042/triggers/manual/paths/invoke?api-version=1';
+const MAILBOX = 'ben.matei@finatal.com';
+const POWER_AUTOMATE_ENDPOINT = 'https://defaulta54d8427900a45edb5cb27f333f1b4.33.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/510c67dcf0db47f9b8c5f97605781042/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ap5FGJMdegW2ZNxHPujJnsmKr8WT9DCNq296rJ_a-qI';
 
 const DOCS_BY_TYPE = {
   limited_company: [
@@ -352,5 +352,7 @@ export default function ContractorOnboardingWebForm() {
       </div>
     </div>
   );
+}
+
 }
 
