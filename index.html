@@ -3,41 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contractor Onboarding</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Contractor Onboarding | Finatal</title>
+  https://cdn.tailwindcss.com
   <style>
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; }
+    :root {
+      --brand-primary: #0f172a;
+      --brand-accent: #2563eb;
+      --brand-light: #eff6ff;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; margin: 0; }
+    .brand-bar { background: var(--brand-primary); color: #fff; padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    .brand-bar img { height: 36px; }
+    .brand-bar h1 { font-size: 1.1rem; font-weight: 600; margin: 0; }
     .card { background: #fff; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); border: 1px solid #e2e8f0; padding: 2rem; margin-bottom: 1.5rem; }
     .badge-req { background: #dc2626; color: #fff; font-size: .7rem; padding: 2px 8px; border-radius: 999px; }
     .badge-opt { background: #e2e8f0; color: #475569; font-size: .7rem; padding: 2px 8px; border-radius: 999px; }
     .file-row { border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem; margin-bottom: .75rem; }
-    .btn { background: #0f172a; color: #fff; border: none; padding: .75rem 2rem; border-radius: 1rem; font-size: 1rem; cursor: pointer; width: 100%; }
-    .btn:hover { background: #1e293b; }
+    .btn { background: var(--brand-accent); color: #fff; border: none; padding: .75rem 2rem; border-radius: 1rem; font-size: 1rem; cursor: pointer; width: 100%; transition: background .2s; }
+    .btn:hover { background: #1d4ed8; }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
     input, select, textarea { width: 100%; padding: .5rem .75rem; border: 1px solid #cbd5e1; border-radius: .5rem; font-size: .95rem; margin-top: .25rem; box-sizing: border-box; }
     label { font-weight: 600; font-size: .9rem; color: #1e293b; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .success-box { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: .75rem; padding: 1rem; color: #065f46; }
     .error-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: .75rem; padding: 1rem; color: #991b1b; }
+    .warn-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: .75rem; padding: .75rem; color: #92400e; font-size: .85rem; margin-top: .5rem; }
+    .file-size-ok { color: #059669; font-size: .8rem; margin-top: .25rem; }
+    .file-size-bad { color: #dc2626; font-size: .8rem; margin-top: .25rem; font-weight: 600; }
+    .footer { text-align: center; padding: 2rem 1rem; color: #94a3b8; font-size: .8rem; }
+    .hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; width: 0; }
     @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 
 <body>
+
+<!-- ========== 🎨 BRANDING BAR ========== -->
+<div class="brand-bar">
+  <!-- Replace src with your logo URL, or delete the img tag -->
+  <!-- <img src="https://yourcompany.com/logo-white.png" alt="Logo" /> -->
+  <div>
+    <h1>Finatal — Contractor Onboarding</h1>
+    <div style="font-size:.8rem; opacity:.7;">Secure document submission portal</div>
+  </div>
+</div>
+
 <div style="max-width:800px; margin:0 auto; padding:2rem 1rem;">
 
-  <div class="card" style="display:flex; align-items:center; gap:1rem;">
-    <div style="font-size:2rem;">🛡️</div>
-    <div>
-      <h1 style="margin:0; font-size:1.6rem;">Contractor Onboarding Submission</h1>
-      <p style="margin:.25rem 0 0; color:#64748b;">Complete this form and upload the required documents before submitting.</p>
+  <div class="card" style="background: var(--brand-light); border-color: #bfdbfe;">
+    <div style="display:flex; align-items:center; gap:1rem;">
+      <div style="font-size:2rem;">🛡️</div>
+      <div>
+        <h2 style="margin:0; font-size:1.3rem; color: var(--brand-primary);">Welcome</h2>
+        <p style="margin:.25rem 0 0; color:#475569;">Please complete this form and upload the required documents. Your submission will be securely sent to our onboarding team for review.</p>
+      </div>
     </div>
   </div>
 
   <form id="onboardingForm">
 
+    <!-- 🔒 HONEYPOT (hidden from humans, bots fill it) -->
+    <div class="hp-field" aria-hidden="true">
+      <label>Leave this blank</label>
+      <input type="text" id="hp_company" name="hp_company" tabindex="-1" autocomplete="off" />
+    </div>
+
     <div class="card">
-      <h2 style="margin-top:0;">Contractor Details</h2>
+      <h2 style="margin-top:0;">👤 Contractor Details</h2>
       <div class="grid2">
         <div><label>First name *</label><input id="firstName" required /></div>
         <div><label>Last name *</label><input id="lastName" required /></div>
@@ -76,12 +108,16 @@
 
     <div class="card">
       <h2 style="margin-top:0;">📎 Required Documentation</h2>
-      <p style="color:#64748b; margin-top:0;">Upload the documents needed for the selected contractor type.</p>
+      <p style="color:#64748b; margin-top:0;">Upload the documents needed for the selected contractor type. <strong>Maximum 25MB total.</strong></p>
       <div id="docsContainer"></div>
+      <div id="sizeWarning" class="warn-box" style="display:none;">
+        ⚠️ <strong>Total file size exceeds 25MB.</strong> Please reduce file sizes or compress documents before submitting.
+      </div>
+      <div id="totalSize" style="font-size:.8rem; color:#64748b; margin-top:.5rem;"></div>
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0;">Declarations</h2>
+      <h2 style="margin-top:0;">✅ Declarations</h2>
       <div style="border:1px solid #e2e8f0; border-radius:.75rem; padding:.75rem; margin-bottom:.75rem;">
         <label><input type="checkbox" id="confirmAccuracy" required /> I confirm that the information and uploaded documents are accurate and complete.</label>
       </div>
@@ -93,17 +129,35 @@
     <div id="errorBox" class="error-box" style="display:none;"></div>
     <div id="successBox" class="success-box" style="display:none;"></div>
 
-    <button type="button" class="btn" id="submitBtn" onclick="submitForm()">Submit onboarding pack</button>
+    <button type="button" class="btn" id="submitBtn" onclick="submitForm()">🚀 Submit onboarding pack</button>
 
   </form>
+
+  <div class="footer">
+    &copy; 2026 Finatal. This portal is for authorised contractor use only.<br />
+    Questions? Contact <a href="mailto:onboarding@finatal.com" style="color:var(--brand-accent);">onboarding@finatal.com</a>
+  </div>
 </div>
 
 <script>
-// ========== CONFIGURATION ==========
+// ================================================================
+// CONFIGURATION — UPDATE THESE VALUES
+// ================================================================
 const POWER_AUTOMATE_ENDPOINT = "https://defaulta54d8427900a45edb5cb27f333f1b4.33.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/510c67dcf0db47f9b8c5f97605781042/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ap5FGJMdegW2ZNxHPujJnsmKr8WT9DCNq296rJ_a-qI";
-const MAILBOX = "ben.matei@finatal.com";
 
-// ========== DOCUMENT DEFINITIONS ==========
+// 🔀 SMART ROUTING — different mailboxes per contractor type
+const MAILBOX_ROUTING = {
+  limited_company: "ben.matei@finatal.com",
+  umbrella:        "ben.matei@finatal.com",
+  margin_only:     "ben.matei@finatal.com",
+};
+
+// 📏 FILE SIZE LIMIT (bytes) — 25MB for Outlook
+const MAX_TOTAL_SIZE = 25 * 1024 * 1024;
+
+// ================================================================
+// DOCUMENT DEFINITIONS
+// ================================================================
 const DOCS = {
   limited_company: [
     { key: "certificateOfIncorporation", label: "Certificate of Incorporation", required: true },
@@ -122,10 +176,42 @@ const DOCS = {
   ],
 };
 
+// ================================================================
+// HELPER FUNCTIONS
+// ================================================================
 function getActiveDocs() {
   const type = document.getElementById("contractorType").value;
   const hasVat = document.getElementById("hasVat").checked;
   return (DOCS[type] || []).filter(d => !d.vatOnly || hasVat);
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function checkTotalSize() {
+  const docs = getActiveDocs();
+  let total = 0;
+  for (const d of docs) {
+    const input = document.getElementById("file_" + d.key);
+    if (input && input.files && input.files[0]) {
+      total += input.files[0].size;
+    }
+  }
+  const warning = document.getElementById("sizeWarning");
+  const sizeDisplay = document.getElementById("totalSize");
+
+  if (total > 0) {
+    sizeDisplay.textContent = "Total upload size: " + formatSize(total) + " / " + formatSize(MAX_TOTAL_SIZE);
+    sizeDisplay.style.color = total > MAX_TOTAL_SIZE ? "#dc2626" : "#64748b";
+  } else {
+    sizeDisplay.textContent = "";
+  }
+
+  warning.style.display = total > MAX_TOTAL_SIZE ? "block" : "none";
+  return total;
 }
 
 function renderDocs() {
@@ -140,13 +226,32 @@ function renderDocs() {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
         <div>
           <div style="font-weight:600;">${d.label}</div>
-          <div style="font-size:.8rem; color:#94a3b8;">Accepted: PDF, Word, JPG, PNG</div>
+          <div style="font-size:.8rem; color:#94a3b8;">Accepted: PDF, Word, JPG, PNG (max 10MB per file)</div>
         </div>
         <span class="${d.required ? 'badge-req' : 'badge-opt'}">${d.required ? 'Required' : 'Optional'}</span>
       </div>
-      <input type="file" id="file_${d.key}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+      <input type="file" id="file_${d.key}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="onFileSelect(this, '${d.key}')" />
+      <div id="size_${d.key}"></div>
     </div>
   `).join("");
+}
+
+function onFileSelect(input, key) {
+  const sizeEl = document.getElementById("size_" + key);
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const size = file.size;
+    if (size > 10 * 1024 * 1024) {
+      sizeEl.className = "file-size-bad";
+      sizeEl.textContent = "⚠️ " + file.name + " (" + formatSize(size) + ") — exceeds 10MB per-file limit";
+    } else {
+      sizeEl.className = "file-size-ok";
+      sizeEl.textContent = "✅ " + file.name + " (" + formatSize(size) + ")";
+    }
+  } else {
+    sizeEl.textContent = "";
+  }
+  checkTotalSize();
 }
 
 function fileToBase64(file) {
@@ -158,19 +263,30 @@ function fileToBase64(file) {
   });
 }
 
+// ================================================================
+// SUBMIT
+// ================================================================
 async function submitForm() {
   const errorBox = document.getElementById("errorBox");
   const successBox = document.getElementById("successBox");
   errorBox.style.display = "none";
   successBox.style.display = "none";
 
+  // 🔒 Honeypot check
+  if (document.getElementById("hp_company").value !== "") {
+    successBox.innerHTML = "✅ <strong>Submitted successfully!</strong>";
+    successBox.style.display = "block";
+    return; // silently reject bots
+  }
+
   // Gather fields
   const firstName = document.getElementById("firstName").value.trim();
   const lastName = document.getElementById("lastName").value.trim();
   const email = document.getElementById("email").value.trim();
   const phone = document.getElementById("phone").value.trim();
-  const contractorType = document.getElementById("contractorType");
-  const contractorTypeLabel = contractorType.options[contractorType.selectedIndex].text;
+  const contractorTypeEl = document.getElementById("contractorType");
+  const contractorTypeValue = contractorTypeEl.value;
+  const contractorTypeLabel = contractorTypeEl.options[contractorTypeEl.selectedIndex].text;
   const limitedCompanyName = document.getElementById("limitedCompanyName").value.trim();
   const workLocation = document.getElementById("workLocation").value.trim();
   const startDate = document.getElementById("startDate").value;
@@ -186,7 +302,7 @@ async function submitForm() {
   if (!phone) errors.push("Phone is required");
   if (!workLocation) errors.push("Work location is required");
   if (!startDate) errors.push("Start date is required");
-  if (contractorType.value === "limited_company" && !limitedCompanyName) errors.push("Company name is required");
+  if (contractorTypeValue === "limited_company" && !limitedCompanyName) errors.push("Company name is required");
   if (!confirmAccuracy) errors.push("Please confirm accuracy");
   if (!consent) errors.push("Please provide consent");
 
@@ -198,9 +314,24 @@ async function submitForm() {
     }
   }
 
+  // 📏 File size check
+  const totalSize = checkTotalSize();
+  if (totalSize > MAX_TOTAL_SIZE) {
+    errors.push("Total file size exceeds 25MB — please reduce file sizes");
+  }
+
+  // Per-file size check
+  for (const d of docs) {
+    const input = document.getElementById("file_" + d.key);
+    if (input && input.files && input.files[0] && input.files[0].size > 10 * 1024 * 1024) {
+      errors.push(d.label + " exceeds 10MB per-file limit");
+    }
+  }
+
   if (errors.length > 0) {
     errorBox.innerHTML = "<strong>⚠️ Please fix:</strong><ul>" + errors.map(e => "<li>" + e + "</li>").join("") + "</ul>";
     errorBox.style.display = "block";
+    window.scrollTo({ top: errorBox.offsetTop - 20, behavior: "smooth" });
     return;
   }
 
@@ -223,13 +354,18 @@ async function submitForm() {
       }
     }
 
+    // 🔀 Smart routing
+    const targetMailbox = MAILBOX_ROUTING[contractorTypeValue] || MAILBOX_ROUTING["limited_company"];
+
     const payload = {
-      mailbox: MAILBOX,
+      mailbox: targetMailbox,
       firstName, lastName, email, phone,
       contractorType: contractorTypeLabel,
+      contractorTypeKey: contractorTypeValue,
       limitedCompanyName: limitedCompanyName || null,
       workLocation, startDate, notes,
-      attachments
+      attachments,
+      submittedAt: new Date().toISOString()
     };
 
     const res = await fetch(POWER_AUTOMATE_ENDPOINT, {
@@ -240,14 +376,22 @@ async function submitForm() {
 
     if (!res.ok) throw new Error("Submission failed (" + res.status + ")");
 
-    successBox.innerHTML = "✅ <strong>Submitted successfully!</strong> Your onboarding pack has been sent for review.";
+    successBox.innerHTML = `
+      ✅ <strong>Submitted successfully!</strong><br />
+      Your onboarding pack has been sent to our team for review.<br />
+      A confirmation email will be sent to <strong>${email}</strong> shortly.
+    `;
     successBox.style.display = "block";
+    document.getElementById("onboardingForm").reset();
+    renderDocs();
+    window.scrollTo({ top: successBox.offsetTop - 20, behavior: "smooth" });
+
   } catch (err) {
-    errorBox.innerHTML = "❌ <strong>Error:</strong> " + err.message;
+    errorBox.innerHTML = "❌ <strong>Error:</strong> " + err.message + "<br />Please try again or contact us.";
     errorBox.style.display = "block";
   } finally {
     btn.disabled = false;
-    btn.textContent = "Submit onboarding pack";
+    btn.textContent = "🚀 Submit onboarding pack";
   }
 }
 
