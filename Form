@@ -353,6 +353,3 @@ export default function ContractorOnboardingWebForm() {
     </div>
   );
 }
-
-}
-
