@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contractor Onboarding</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; }
+    .card { background: #fff; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); border: 1px solid #e2e8f0; padding: 2rem; margin-bottom: 1.5rem; }
+    .badge-req { background: #dc2626; color: #fff; font-size: .7rem; padding: 2px 8px; border-radius: 999px; }
+    .badge-opt { background: #e2e8f0; color: #475569; font-size: .7rem; padding: 2px 8px; border-radius: 999px; }
+    .file-row { border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem; margin-bottom: .75rem; }
+    .btn { background: #0f172a; color: #fff; border: none; padding: .75rem 2rem; border-radius: 1rem; font-size: 1rem; cursor: pointer; width: 100%; }
+    .btn:hover { background: #1e293b; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    input, select, textarea { width: 100%; padding: .5rem .75rem; border: 1px solid #cbd5e1; border-radius: .5rem; font-size: .95rem; margin-top: .25rem; box-sizing: border-box; }
+    label { font-weight: 600; font-size: .9rem; color: #1e293b; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .success-box { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: .75rem; padding: 1rem; color: #065f46; }
+    .error-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: .75rem; padding: 1rem; color: #991b1b; }
+    @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+
+<body>
+<div style="max-width:800px; margin:0 auto; padding:2rem 1rem;">
+
+  <div class="card" style="display:flex; align-items:center; gap:1rem;">
+    <div style="font-size:2rem;">🛡️</div>
+    <div>
+      <h1 style="margin:0; font-size:1.6rem;">Contractor Onboarding Submission</h1>
+      <p style="margin:.25rem 0 0; color:#64748b;">Complete this form and upload the required documents before submitting.</p>
+    </div>
+  </div>
+
+  <form id="onboardingForm">
+
+    <div class="card">
+      <h2 style="margin-top:0;">Contractor Details</h2>
+      <div class="grid2">
+        <div><label>First name *</label><input id="firstName" required /></div>
+        <div><label>Last name *</label><input id="lastName" required /></div>
+        <div><label>Email address *</label><input id="email" type="email" required /></div>
+        <div><label>Phone number *</label><input id="phone" required /></div>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <label>Contractor type *</label>
+        <select id="contractorType" onchange="renderDocs()">
+          <option value="limited_company">Limited company contractor (outside IR35)</option>
+          <option value="umbrella">Umbrella company contractor</option>
+          <option value="margin_only">Margin only contractor</option>
+        </select>
+      </div>
+
+      <div id="companyNameRow" style="margin-top:1rem;">
+        <label>Limited company name *</label>
+        <input id="limitedCompanyName" />
+      </div>
+
+      <div class="grid2" style="margin-top:1rem;">
+        <div><label>Work location *</label><input id="workLocation" placeholder="e.g. London / Hybrid" required /></div>
+        <div><label>Assignment start date *</label><input id="startDate" type="date" required /></div>
+      </div>
+
+      <div id="vatRow" style="margin-top:1rem;">
+        <label><input type="checkbox" id="hasVat" onchange="renderDocs()" /> This company is VAT registered</label>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <label>Notes</label>
+        <textarea id="notes" rows="3" placeholder="Any additional notes for compliance or finance review."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">📎 Required Documentation</h2>
+      <p style="color:#64748b; margin-top:0;">Upload the documents needed for the selected contractor type.</p>
+      <div id="docsContainer"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Declarations</h2>
+      <div style="border:1px solid #e2e8f0; border-radius:.75rem; padding:.75rem; margin-bottom:.75rem;">
+        <label><input type="checkbox" id="confirmAccuracy" required /> I confirm that the information and uploaded documents are accurate and complete.</label>
+      </div>
+      <div style="border:1px solid #e2e8f0; border-radius:.75rem; padding:.75rem;">
+        <label><input type="checkbox" id="consent" required /> I consent to the information in this form being used for onboarding, compliance, payroll, finance, and audit purposes.</label>
+      </div>
+    </div>
+
+    <div id="errorBox" class="error-box" style="display:none;"></div>
+    <div id="successBox" class="success-box" style="display:none;"></div>
+
+    <button type="button" class="btn" id="submitBtn" onclick="submitForm()">Submit onboarding pack</button>
+
+  </form>
+</div>
+
+<script>
+// ========== CONFIGURATION ==========
+const POWER_AUTOMATE_ENDPOINT = "https://defaulta54d8427900a45edb5cb27f333f1b4.33.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/510c67dcf0db47f9b8c5f97605781042/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ap5FGJMdegW2ZNxHPujJnsmKr8WT9DCNq296rJ_a-qI";
+const MAILBOX = "ben.matei@finatal.com";
+
+// ========== DOCUMENT DEFINITIONS ==========
+const DOCS = {
+  limited_company: [
+    { key: "certificateOfIncorporation", label: "Certificate of Incorporation", required: true },
+    { key: "rightToWork", label: "Right to Work evidence (passport or share-code)", required: true },
+    { key: "proofOfAddress", label: "Proof of address", required: true },
+    { key: "bankDetails", label: "Proof of bank details", required: true },
+    { key: "vatRegistration", label: "Proof of VAT registration", required: false, vatOnly: true },
+    { key: "insurance", label: "Company insurance (PI/PL or Employers Liability)", required: true },
+  ],
+  umbrella: [
+    { key: "rightToWork", label: "Right to Work evidence", required: true },
+    { key: "proofOfAddress", label: "Proof of address (unless collected by umbrella company)", required: false },
+  ],
+  margin_only: [
+    { key: "rightToWork", label: "Right to Work evidence", required: true },
+  ],
+};
+
+function getActiveDocs() {
+  const type = document.getElementById("contractorType").value;
+  const hasVat = document.getElementById("hasVat").checked;
+  return (DOCS[type] || []).filter(d => !d.vatOnly || hasVat);
+}
+
+function renderDocs() {
+  const type = document.getElementById("contractorType").value;
+  document.getElementById("companyNameRow").style.display = type === "limited_company" ? "block" : "none";
+  document.getElementById("vatRow").style.display = type === "limited_company" ? "block" : "none";
+
+  const container = document.getElementById("docsContainer");
+  const docs = getActiveDocs();
+  container.innerHTML = docs.map(d => `
+    <div class="file-row">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+        <div>
+          <div style="font-weight:600;">${d.label}</div>
+          <div style="font-size:.8rem; color:#94a3b8;">Accepted: PDF, Word, JPG, PNG</div>
+        </div>
+        <span class="${d.required ? 'badge-req' : 'badge-opt'}">${d.required ? 'Required' : 'Optional'}</span>
+      </div>
+      <input type="file" id="file_${d.key}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+    </div>
+  `).join("");
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function submitForm() {
+  const errorBox = document.getElementById("errorBox");
+  const successBox = document.getElementById("successBox");
+  errorBox.style.display = "none";
+  successBox.style.display = "none";
+
+  // Gather fields
+  const firstName = document.getElementById("firstName").value.trim();
+  const lastName = document.getElementById("lastName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const contractorType = document.getElementById("contractorType");
+  const contractorTypeLabel = contractorType.options[contractorType.selectedIndex].text;
+  const limitedCompanyName = document.getElementById("limitedCompanyName").value.trim();
+  const workLocation = document.getElementById("workLocation").value.trim();
+  const startDate = document.getElementById("startDate").value;
+  const notes = document.getElementById("notes").value.trim();
+  const confirmAccuracy = document.getElementById("confirmAccuracy").checked;
+  const consent = document.getElementById("consent").checked;
+
+  // Validate
+  const errors = [];
+  if (!firstName) errors.push("First name is required");
+  if (!lastName) errors.push("Last name is required");
+  if (!email) errors.push("Email is required");
+  if (!phone) errors.push("Phone is required");
+  if (!workLocation) errors.push("Work location is required");
+  if (!startDate) errors.push("Start date is required");
+  if (contractorType.value === "limited_company" && !limitedCompanyName) errors.push("Company name is required");
+  if (!confirmAccuracy) errors.push("Please confirm accuracy");
+  if (!consent) errors.push("Please provide consent");
+
+  const docs = getActiveDocs();
+  for (const d of docs) {
+    const input = document.getElementById("file_" + d.key);
+    if (d.required && (!input || !input.files || !input.files[0])) {
+      errors.push(d.label + " is required");
+    }
+  }
+
+  if (errors.length > 0) {
+    errorBox.innerHTML = "<strong>⚠️ Please fix:</strong><ul>" + errors.map(e => "<li>" + e + "</li>").join("") + "</ul>";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  // Build attachments
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.textContent = "Submitting...";
+
+  try {
+    const attachments = [];
+    for (const d of docs) {
+      const input = document.getElementById("file_" + d.key);
+      if (input && input.files && input.files[0]) {
+        const file = input.files[0];
+        const base64 = await fileToBase64(file);
+        attachments.push({
+          Name: d.label + " - " + file.name,
+          ContentBytes: base64
+        });
+      }
+    }
+
+    const payload = {
+      mailbox: MAILBOX,
+      firstName, lastName, email, phone,
+      contractorType: contractorTypeLabel,
+      limitedCompanyName: limitedCompanyName || null,
+      workLocation, startDate, notes,
+      attachments
+    };
+
+    const res = await fetch(POWER_AUTOMATE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error("Submission failed (" + res.status + ")");
+
+    successBox.innerHTML = "✅ <strong>Submitted successfully!</strong> Your onboarding pack has been sent for review.";
+    successBox.style.display = "block";
+  } catch (err) {
+    errorBox.innerHTML = "❌ <strong>Error:</strong> " + err.message;
+    errorBox.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Submit onboarding pack";
+  }
+}
+
+// Initial render
+renderDocs();
+</script>
+</body>
+</html>
